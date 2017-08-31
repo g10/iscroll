@@ -30,12 +30,16 @@
 
 		// Execute the scrollEnd event after 400ms the wheel stopped scrolling
 		clearTimeout(this.wheelTimeout);
-		this.wheelTimeout = setTimeout(function () {
-			if(!that.options.snap) {
-				that._execEvent('scrollEnd');
-			}
-			that.wheelTimeout = undefined;
-		}, 400);
+		
+		// 201606*pike
+		if (!this.blockMomentum) {
+			this.wheelTimeout = setTimeout(function () {
+				if(!that.options.snap) {
+					that._execEvent('scrollEnd');
+				}
+				that.wheelTimeout = undefined;
+			}, 400);
+		}
 
 		if ( 'deltaX' in e ) {
 			if (e.deltaMode === 1) {
@@ -80,7 +84,30 @@
 				newY++;
 			}
 
-			this.goToPage(newX, newY);
+			// 201606*pike
+			if (this.options.blockMomentum) {
+				//console.log(this.currentPage.pageX,this.currentPage.pageY,newX,newY);
+				if (newX != this.currentPage.pageX || newY != this.currentPage.pageY) {
+					if (!this.blockMomentum) {
+						this.blockMomentum = true;
+						this.goToPage(newX, newY);
+						// triggers onScrollEnd
+						this.momentumTimer = setTimeout(function () {
+							that.blockMomentum = false;
+							that.momentumTimer = undefined;
+							// trigger scrollstart after this
+							that.wheelTimeout = undefined;
+						}, this.options.momentumTimeout || this.options.snapSpeed);
+						
+					} else {
+						// nop
+					}
+				}
+			} else {
+				this.goToPage(newX, newY);
+			}
+			
+			
 
 			return;
 		}
